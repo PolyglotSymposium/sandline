@@ -124,24 +124,93 @@ let rec printDecl prefix d =
     | FSharpImplementationFileDeclaration.InitAction(e) -> 
         printfn "%sA top-level expression was declared" prefix 
 
-let main() =
-    let input2 = """
-    module MyLibrary 
+let input1 = """
+module MyLibrary
 
-    open System
+let foo = 0
+"""
 
-    let foo(x, y) = 
-        let msg = String.Concat("Hello", " ", "world")
-        if msg.Length > 10 then 
-            10 
-        else 
-            20
+let input2 = """
+module MyLibrary 
 
-    type MyClass() = 
-        member x.MyMethod() = 1
-          """
+open System
 
-    let checkedFile = parseAndCheckSingleFile input2
+let foo(x, y) = 
+    let msg = String.Concat("Hello", " ", "world")
+    if msg.Length > 10 then 
+        10 
+    else 
+        20
+
+type MyClass() = 
+    member x.MyMethod() = 1
+      """
+
+let rec checkExprPurity (e:FSharpExpr) = 
+    match e with 
+    | BasicPatterns.AddressOf(lvalueExpr) -> false
+    | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> false
+    | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> false
+    | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) -> false
+    | BasicPatterns.Coerce(targetType, inpExpr) -> false
+    | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> false
+    | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> false
+    | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> false
+    | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> false
+    | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) -> false
+    | BasicPatterns.Lambda(lambdaVar, bodyExpr) -> false
+    | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> false
+    | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> false
+    | BasicPatterns.NewArray(arrayType, argExprs) -> false
+    | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> false
+    | BasicPatterns.NewObject(objType, typeArgs, argExprs) -> false
+    | BasicPatterns.NewRecord(recordType, argExprs) -> false
+    | BasicPatterns.NewTuple(tupleType, argExprs) -> false
+    | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> false
+    | BasicPatterns.Quote(quotedExpr) -> false
+    | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> false
+    | BasicPatterns.FSharpFieldSet(objExprOpt, recordOrClassType, fieldInfo, argExpr) -> false
+    | BasicPatterns.Sequential(firstExpr, secondExpr) -> false
+    | BasicPatterns.TryFinally(bodyExpr, finalizeExpr) -> false
+    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> false
+    | BasicPatterns.TupleGet(tupleType, tupleElemIndex, tupleExpr) -> false
+    | BasicPatterns.DecisionTree(decisionExpr, decisionTargets) -> false
+    | BasicPatterns.DecisionTreeSuccess (decisionTargetIdx, decisionTargetExprs) -> false
+    | BasicPatterns.TypeLambda(genericParam, bodyExpr) -> false
+    | BasicPatterns.TypeTest(ty, inpExpr) -> false
+    | BasicPatterns.UnionCaseSet(unionExpr, unionType, unionCase, unionCaseField, valueExpr) -> false
+    | BasicPatterns.UnionCaseGet(unionExpr, unionType, unionCase, unionCaseField) -> false
+    | BasicPatterns.UnionCaseTest(unionExpr, unionType, unionCase) -> false
+    | BasicPatterns.UnionCaseTag(unionExpr, unionType) -> false
+    | BasicPatterns.ObjectExpr(objType, baseCallExpr, overrides, interfaceImplementations) -> false
+    | BasicPatterns.TraitCall(sourceTypes, traitName, typeArgs, typeInstantiation, argExprs) -> false
+    | BasicPatterns.ValueSet(valToSet, valueExpr) -> false
+    | BasicPatterns.WhileLoop(guardExpr, bodyExpr) -> false
+    | BasicPatterns.BaseValue baseType -> false
+    | BasicPatterns.DefaultValue defaultType -> false
+    | BasicPatterns.ThisValue thisType -> false
+    | BasicPatterns.Const(constValueObj, constType) -> true
+    | BasicPatterns.Value(valueToGet) -> false
+    | _ -> false
+
+let rec checkDeclPurity d = 
+    match d with 
+    | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> 
+        printfn "Entity %s was declared and contains %d sub-declarations" e.CompiledName subDecls.Length
+        checkDeclsPurity subDecls
+    | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, vs, expr) -> 
+        checkExprPurity expr
+    | FSharpImplementationFileDeclaration.InitAction expr -> 
+        checkExprPurity expr
+and checkDeclsPurity decls =
+    Seq.map checkDeclPurity decls
+    |> Seq.reduce (&&)
+
+let checkPurity() =
+    checkDeclsPurity (parseAndCheckSingleFile input1).Declarations
+
+let test() =
+    let checkedFile = parseAndCheckSingleFile input1
 
     for d in checkedFile.Declarations do 
        printDecl "" d
@@ -151,12 +220,13 @@ let main() =
        | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> (e, subDecls)
        | _ -> failwith "unexpected"
 
+    printfn "myLibraryEntity is F# module: %b" myLibraryEntity.IsFSharpModule
+
     let (fooSymbol, fooArgs, fooExpression) = 
         match myLibraryDecls.[0] with 
         | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, vs, e) -> (v, vs, e)
         | _ -> failwith "unexpected"
 
     printfn "foo Expression Type: %A" fooExpression.Type  // shows that the return type of the body expression is 'int'
-    printfn "foo Expression Range: %A" fooExpression.Range  // shows the declaration range of the expression implementing 'foo'
 
     fooExpression |> visitExpr (printfn "Visiting %A")

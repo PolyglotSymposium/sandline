@@ -2,7 +2,7 @@
 // See the 'F# Tutorial' project for more help.
 
 [<EntryPoint>]
-let main argv = 
-    printfn "%A" argv
-    Sandline.main()
+let main _ = 
+    Sandline.test()
+    printfn "Your code is pure: %b" <| Sandline.checkPurity()
     0 // return an integer exit code
