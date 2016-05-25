@@ -4,5 +4,6 @@
 [<EntryPoint>]
 let main _ = 
     Sandline.test()
-    printfn "Your code is pure: %b" <| Sandline.checkPurity()
+    printfn "Your first code is %A" <| Sandline.checkPurity Sandline.input0
+    printfn "Your second code is %A" <| Sandline.checkPurity Sandline.input1
     0 // return an integer exit code

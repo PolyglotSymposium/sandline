@@ -124,6 +124,12 @@ let rec printDecl prefix d =
     | FSharpImplementationFileDeclaration.InitAction(e) -> 
         printfn "%sA top-level expression was declared" prefix 
 
+let input0 = """
+module MyLibrary
+
+let foo = System.DateTime.Now
+"""
+
 let input1 = """
 module MyLibrary
 
@@ -146,57 +152,68 @@ type MyClass() =
     member x.MyMethod() = 1
       """
 
+type Purity =
+    | Pure
+    | Impure
+    | Unknown
+
+let (&&&&) p1 p2 =
+    match (p1, p2) with
+    | Pure, Pure -> Pure
+    | Impure, _ -> Impure
+    | _, Impure -> Impure
+    | _ -> Unknown
+
 let rec checkExprPurity (e:FSharpExpr) = 
     match e with 
-    | BasicPatterns.AddressOf(lvalueExpr) -> false
-    | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> false
-    | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> false
-    | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) -> false
-    | BasicPatterns.Coerce(targetType, inpExpr) -> false
-    | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> false
-    | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> false
-    | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> false
-    | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> false
-    | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) -> false
-    | BasicPatterns.Lambda(lambdaVar, bodyExpr) -> false
-    | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> false
-    | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> false
-    | BasicPatterns.NewArray(arrayType, argExprs) -> false
-    | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> false
-    | BasicPatterns.NewObject(objType, typeArgs, argExprs) -> false
-    | BasicPatterns.NewRecord(recordType, argExprs) -> false
-    | BasicPatterns.NewTuple(tupleType, argExprs) -> false
-    | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> false
-    | BasicPatterns.Quote(quotedExpr) -> false
-    | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> false
-    | BasicPatterns.FSharpFieldSet(objExprOpt, recordOrClassType, fieldInfo, argExpr) -> false
-    | BasicPatterns.Sequential(firstExpr, secondExpr) -> false
-    | BasicPatterns.TryFinally(bodyExpr, finalizeExpr) -> false
-    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> false
-    | BasicPatterns.TupleGet(tupleType, tupleElemIndex, tupleExpr) -> false
-    | BasicPatterns.DecisionTree(decisionExpr, decisionTargets) -> false
-    | BasicPatterns.DecisionTreeSuccess (decisionTargetIdx, decisionTargetExprs) -> false
-    | BasicPatterns.TypeLambda(genericParam, bodyExpr) -> false
-    | BasicPatterns.TypeTest(ty, inpExpr) -> false
-    | BasicPatterns.UnionCaseSet(unionExpr, unionType, unionCase, unionCaseField, valueExpr) -> false
-    | BasicPatterns.UnionCaseGet(unionExpr, unionType, unionCase, unionCaseField) -> false
-    | BasicPatterns.UnionCaseTest(unionExpr, unionType, unionCase) -> false
-    | BasicPatterns.UnionCaseTag(unionExpr, unionType) -> false
-    | BasicPatterns.ObjectExpr(objType, baseCallExpr, overrides, interfaceImplementations) -> false
-    | BasicPatterns.TraitCall(sourceTypes, traitName, typeArgs, typeInstantiation, argExprs) -> false
-    | BasicPatterns.ValueSet(valToSet, valueExpr) -> false
-    | BasicPatterns.WhileLoop(guardExpr, bodyExpr) -> false
-    | BasicPatterns.BaseValue baseType -> false
-    | BasicPatterns.DefaultValue defaultType -> false
-    | BasicPatterns.ThisValue thisType -> false
-    | BasicPatterns.Const(constValueObj, constType) -> true
-    | BasicPatterns.Value(valueToGet) -> false
-    | _ -> false
+    | BasicPatterns.AddressOf(lvalueExpr) -> Unknown
+    | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> Unknown
+    | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown
+    | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) -> Unknown
+    | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown
+    | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown
+    | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown
+    | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown
+    | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown
+    | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) -> Unknown
+    | BasicPatterns.Lambda(lambdaVar, bodyExpr) -> Unknown
+    | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Unknown
+    | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown
+    | BasicPatterns.NewArray(arrayType, argExprs) -> Unknown
+    | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> Unknown
+    | BasicPatterns.NewObject(objType, typeArgs, argExprs) -> Unknown
+    | BasicPatterns.NewRecord(recordType, argExprs) -> Unknown
+    | BasicPatterns.NewTuple(tupleType, argExprs) -> Unknown
+    | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> Unknown
+    | BasicPatterns.Quote(quotedExpr) -> Unknown
+    | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> Unknown
+    | BasicPatterns.FSharpFieldSet(objExprOpt, recordOrClassType, fieldInfo, argExpr) -> Unknown
+    | BasicPatterns.Sequential(firstExpr, secondExpr) -> Unknown
+    | BasicPatterns.TryFinally(bodyExpr, finalizeExpr) -> Unknown
+    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> Unknown
+    | BasicPatterns.TupleGet(tupleType, tupleElemIndex, tupleExpr) -> Unknown
+    | BasicPatterns.DecisionTree(decisionExpr, decisionTargets) -> Unknown
+    | BasicPatterns.DecisionTreeSuccess (decisionTargetIdx, decisionTargetExprs) -> Unknown
+    | BasicPatterns.TypeLambda(genericParam, bodyExpr) -> Unknown
+    | BasicPatterns.TypeTest(ty, inpExpr) -> Unknown
+    | BasicPatterns.UnionCaseSet(unionExpr, unionType, unionCase, unionCaseField, valueExpr) -> Unknown
+    | BasicPatterns.UnionCaseGet(unionExpr, unionType, unionCase, unionCaseField) -> Unknown
+    | BasicPatterns.UnionCaseTest(unionExpr, unionType, unionCase) -> Unknown
+    | BasicPatterns.UnionCaseTag(unionExpr, unionType) -> Unknown
+    | BasicPatterns.ObjectExpr(objType, baseCallExpr, overrides, interfaceImplementations) -> Unknown
+    | BasicPatterns.TraitCall(sourceTypes, traitName, typeArgs, typeInstantiation, argExprs) -> Unknown
+    | BasicPatterns.ValueSet(valToSet, valueExpr) -> Unknown
+    | BasicPatterns.WhileLoop(guardExpr, bodyExpr) -> Unknown
+    | BasicPatterns.BaseValue baseType -> Unknown
+    | BasicPatterns.DefaultValue defaultType -> Unknown
+    | BasicPatterns.ThisValue thisType -> Unknown
+    | BasicPatterns.Const(constValueObj, constType) -> Pure
+    | BasicPatterns.Value(valueToGet) -> Unknown
+    | _ -> Unknown
 
 let rec checkDeclPurity d = 
     match d with 
     | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> 
-        printfn "Entity %s was declared and contains %d sub-declarations" e.CompiledName subDecls.Length
         checkDeclsPurity subDecls
     | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, vs, expr) -> 
         checkExprPurity expr
@@ -204,10 +221,10 @@ let rec checkDeclPurity d =
         checkExprPurity expr
 and checkDeclsPurity decls =
     Seq.map checkDeclPurity decls
-    |> Seq.reduce (&&)
+    |> Seq.reduce (&&&&)
 
-let checkPurity() =
-    checkDeclsPurity (parseAndCheckSingleFile input1).Declarations
+let checkPurity input =
+    checkDeclsPurity (parseAndCheckSingleFile input).Declarations
 
 let test() =
     let checkedFile = parseAndCheckSingleFile input1
