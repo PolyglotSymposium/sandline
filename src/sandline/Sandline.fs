@@ -152,6 +152,24 @@ type MyClass() =
     member x.MyMethod() = 1
       """
 
+let input3 = """
+module MyLibrary
+
+let id x = x
+"""
+
+let input4 = """
+module MyLibrary
+
+let mutable foo = 5
+"""
+
+let input5 = """
+module MyLibrary
+
+let foo = ref 5
+"""
+
 type Purity =
     | Pure
     | Impure
@@ -209,7 +227,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.DefaultValue defaultType -> Unknown "DefaultValue"
     | BasicPatterns.ThisValue thisType -> Unknown "ThisValue"
     | BasicPatterns.Const(constValueObj, constType) -> Pure
-    | BasicPatterns.Value(valueToGet) -> Unknown "Value"
+    | BasicPatterns.Value valueToGet -> Pure
     | _ -> Unknown "don't even know what this is"
 
 let rec checkDeclPurity d = 
@@ -217,7 +235,9 @@ let rec checkDeclPurity d =
     | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> 
         checkDeclsPurity subDecls
     | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, vs, expr) -> 
-        checkExprPurity expr
+        if v.IsMutable
+        then Impure
+        else checkExprPurity expr
     | FSharpImplementationFileDeclaration.InitAction expr -> 
         checkExprPurity expr
 and checkDeclsPurity decls =
