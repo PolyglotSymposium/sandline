@@ -20,22 +20,19 @@ module MyLibrary
 let foo = System.DateTime.Now
 """
 
-let input5 = """
-module MyLibrary
-
-let foo = ref 5
-"""
+type ImpurityEvidence =
+    | UsesMutability of FSharpSymbol
 
 type Purity =
     | Pure
-    | Impure
+    | Impure of ImpurityEvidence
     | Unknown of string
 
 let (&&&&) p1 p2 =
     match p1, p2 with
     | Pure, Pure -> Pure
-    | Impure, _ -> Impure
-    | _, Impure -> Impure
+    | Impure a, _ -> Impure a
+    | _, Impure a -> Impure a
     | Unknown a, _ -> Unknown a
     | _, Unknown b -> Unknown b
 
@@ -46,7 +43,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown "Application"
     | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) ->
         if memberOrFunc.FullName = "Microsoft.FSharp.Core.Operators.ref"
-        then Impure
+        then Impure <| UsesMutability memberOrFunc
         else 
             sprintf "Call: (Full: %s, Logical: %s; Display: %s; Compiled: %s)" memberOrFunc.FullName memberOrFunc.LogicalName memberOrFunc.DisplayName memberOrFunc.CompiledName
             |> Unknown
@@ -95,9 +92,9 @@ let rec checkDeclPurity d =
     match d with 
     | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> 
         checkDeclsPurity subDecls
-    | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(v, vs, expr) -> 
-        if v.IsMutable
-        then Impure
+    | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(mOrFOrV, vs, expr) -> 
+        if mOrFOrV.IsMutable
+        then Impure <| UsesMutability mOrFOrV
         else checkExprPurity expr
     | FSharpImplementationFileDeclaration.InitAction expr -> 
         checkExprPurity expr

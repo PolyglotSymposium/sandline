@@ -12,6 +12,11 @@ let saveCode code =
     File.WriteAllText(file, code)
     file
 
+let mutabilityEvidenceName purity =
+    match purity with
+    | Impure (UsesMutability symbol) -> Some symbol.FullName
+    | _ -> None
+
 [<Tests>]
 let specs = 
     testList "Purity checking" [
@@ -42,19 +47,19 @@ let specs =
 
             let mutable foo = 0
             """
-            test <@ checkPurity filepath = Impure @>
+            test <@ mutabilityEvidenceName <| checkPurity filepath = Some "MyLibrary.foo" @>
         testCase "A let statement with a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo = ref 0
             """
-            test <@ checkPurity filepath = Impure @>
+            test <@ mutabilityEvidenceName <| checkPurity filepath = Some "Microsoft.FSharp.Core.Operators.ref" @>
         testCase "A function returning a ref, not dependent on inputs is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo () = ref 0
             """
-            test <@ checkPurity filepath = Impure @>
+            test <@ mutabilityEvidenceName <| checkPurity filepath = Some "Microsoft.FSharp.Core.Operators.ref" @>
     ]
