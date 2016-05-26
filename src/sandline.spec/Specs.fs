@@ -50,4 +50,11 @@ let specs =
             let foo = ref 0
             """
             test <@ checkPurity filepath = Impure @>
+        testCase "A function returning a ref, not dependent on inputs is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo () = ref 0
+            """
+            test <@ checkPurity filepath = Impure @>
     ]
