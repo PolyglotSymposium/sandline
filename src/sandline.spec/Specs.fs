@@ -19,7 +19,28 @@ let specs =
             let filepath = saveCode """
             module MyLibrary
 
+            let foo = ()
+            """
+            test <@ checkPurity filepath = Pure @>
+        testCase "A simple let statement with zero is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
             let foo = 0
             """
             test <@ checkPurity filepath = Pure @>
+        testCase "Parametric identity function is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let id x = x
+            """
+            test <@ checkPurity filepath = Pure @>
+        testCase "A mutable let statement with zero is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let mutable foo = 0
+            """
+            test <@ checkPurity filepath = Impure @>
     ]

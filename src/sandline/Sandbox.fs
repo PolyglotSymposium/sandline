@@ -130,6 +130,22 @@ module MyLibrary
 let foo = 0
 """
 
+let input2 = """
+module MyLibrary 
+
+open System
+
+let foo(x, y) = 
+    let msg = String.Concat("Hello", " ", "world")
+    if msg.Length > 10 then 
+        10 
+    else 
+        20
+
+type MyClass() = 
+    member x.MyMethod() = 1
+      """
+
 let test'() =
     let checkedFile = parseAndCheckSingleFile input1
 

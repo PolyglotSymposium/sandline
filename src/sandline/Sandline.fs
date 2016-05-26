@@ -20,34 +20,6 @@ module MyLibrary
 let foo = System.DateTime.Now
 """
 
-let input2 = """
-module MyLibrary 
-
-open System
-
-let foo(x, y) = 
-    let msg = String.Concat("Hello", " ", "world")
-    if msg.Length > 10 then 
-        10 
-    else 
-        20
-
-type MyClass() = 
-    member x.MyMethod() = 1
-      """
-
-let input3 = """
-module MyLibrary
-
-let id x = x
-"""
-
-let input4 = """
-module MyLibrary
-
-let mutable foo = 5
-"""
-
 let input5 = """
 module MyLibrary
 
