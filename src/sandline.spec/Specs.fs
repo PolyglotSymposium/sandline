@@ -131,4 +131,14 @@ let specs =
                 raise <| System.Exception()
             """
             test <@ checkPurity filepath = Impure UsesExceptions @>
+        testCase "A function that catches an exception is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo bar =
+                try
+                    bar()
+                with _ -> ()
+            """
+            test <@ checkPurity filepath = Impure UsesExceptions @>
     ]
