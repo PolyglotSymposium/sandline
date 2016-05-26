@@ -3,3 +3,7 @@ NUGET
   specs:
     FAKE (4.27)
     FSharp.Compiler.Service (3.0)
+    FSharp.Core (4.0.0.1)
+    Fuchu (1.0.3)
+      FSharp.Core (>= 3.1.2.1)
+    Unquote (3.1.1)
