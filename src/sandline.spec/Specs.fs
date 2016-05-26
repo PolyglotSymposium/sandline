@@ -15,6 +15,7 @@ let saveCode code =
 let mutabilityEvidenceName purity =
     match purity with
     | Impure (UsesMutability symbol) -> symbol.FullName
+    | Impure UsesExceptions -> failwith "Expected impure because of mutability; was impure because of exceptions"
     | Pure -> failwith "Expected impure because of mutability; was pure"
     | Unknown reason -> failwithf "Expected impure because of mutability; was Unknown because of %s" reason
 
@@ -122,4 +123,12 @@ let specs =
                 x := 3
             """
             test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.( := )" @>
+        testCase "A function that raises an exception is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo() =
+                raise <| System.Exception()
+            """
+            test <@ checkPurity filepath = Impure UsesExceptions @>
     ]

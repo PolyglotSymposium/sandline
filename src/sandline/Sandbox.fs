@@ -140,14 +140,21 @@ let foo(x, y) =
     if msg.Length > 10 then 
         10 
     else 
-        20
+        2
 
 type MyClass() = 
     member x.MyMethod() = 1
       """
 
+let input3 = """
+module MyLibrary
+
+let foo =
+    raise <| Exception()
+"""
+
 let test'() =
-    let checkedFile = parseAndCheckSingleFile input1
+    let checkedFile = parseAndCheckSingleFile input3
 
     for d in checkedFile.Declarations do 
        printDecl "" d

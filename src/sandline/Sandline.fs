@@ -22,6 +22,7 @@ let foo = System.DateTime.Now
 
 type ImpurityEvidence =
     | UsesMutability of FSharpSymbol
+    | UsesExceptions
 
 type Purity =
     | Pure
@@ -36,10 +37,14 @@ let (&&&&) p1 p2 =
     | Unknown a, _ -> Unknown a
     | _, Unknown b -> Unknown b
 
-let impureFunctions = [
+let usesMutability = [
     "Microsoft.FSharp.Core.Operators.ref"
     "Microsoft.FSharp.Core.Operators.( ! )"
     "Microsoft.FSharp.Core.Operators.( := )"
+]
+
+let usesExceptions = [
+    "Microsoft.FSharp.Core.Operators.raise"
 ]
 
 let mapPurity f =
@@ -52,8 +57,10 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> Unknown "AddressSet"
     | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown "Application"
     | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) ->
-        if Seq.exists ((=) memberOrFunc.FullName) impureFunctions
+        if Seq.exists ((=) memberOrFunc.FullName) usesMutability
         then Impure <| UsesMutability memberOrFunc
+        else if Seq.exists ((=) memberOrFunc.FullName) usesExceptions
+        then Impure <| UsesExceptions //memberOrFunc
         else
             mapPurity checkExprPurity argExprs
     | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
@@ -63,12 +70,15 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown "IlFieldSet"
     | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) ->
         mapPurity checkExprPurity [guardExpr; thenExpr; elseExpr]
-    | BasicPatterns.Lambda(lambdaVar, bodyExpr) -> Unknown "Lambda"
+    | BasicPatterns.Lambda(lambdaVar, bodyExpr) ->
+        checkExprPurity bodyExpr
     | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Unknown "Let"
     | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown "LetRec"
     | BasicPatterns.NewArray(arrayType, argExprs) -> Unknown "NewArray"
     | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> Unknown "NewDelegate"
-    | BasicPatterns.NewObject(objType, typeArgs, argExprs) -> Unknown "NewObject"
+    | BasicPatterns.NewObject(objType, typeArgs, argExprs) ->
+        sprintf "NewObject: (Type: %s, Type Args: %A, Arg Exprs: %A)" objType.FullName typeArgs argExprs
+        |> Unknown
     | BasicPatterns.NewRecord(recordType, argExprs) -> Unknown "NewRecord"
     | BasicPatterns.NewTuple(tupleType, argExprs) -> Unknown "NewTuple"
     | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> Unknown "NewUnionCase"
