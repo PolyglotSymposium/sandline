@@ -72,6 +72,13 @@ let specs =
             let ifthenelse x y z = if x then y else !z
             """
             test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
+        testCase "An if-then-else expression is impure even if its impure alternate is never executed" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let ifthenelse x y z = if true then y else !z
+            """
+            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
         testCase "Parametric identity function is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
