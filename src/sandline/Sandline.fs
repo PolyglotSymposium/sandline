@@ -39,6 +39,7 @@ let (&&&&) p1 p2 =
 let impureFunctions = [
     "Microsoft.FSharp.Core.Operators.ref"
     "Microsoft.FSharp.Core.Operators.( ! )"
+    "Microsoft.FSharp.Core.Operators.( := )"
 ]
 
 let mapPurity f =

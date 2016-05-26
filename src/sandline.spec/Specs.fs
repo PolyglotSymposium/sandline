@@ -77,4 +77,12 @@ let specs =
             let foo x = 3 + !x
             """
             test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.( ! )" @>
+        testCase "A function dereferencing a ref is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo x =
+                x := 3
+            """
+            test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.( := )" @>
     ]
