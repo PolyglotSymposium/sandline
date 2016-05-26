@@ -43,4 +43,11 @@ let specs =
             let mutable foo = 0
             """
             test <@ checkPurity filepath = Impure @>
+        testCase "A let statement with a ref is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo = ref 0
+            """
+            test <@ checkPurity filepath = Impure @>
     ]

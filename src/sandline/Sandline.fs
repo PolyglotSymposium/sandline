@@ -44,7 +44,12 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.AddressOf(lvalueExpr) -> Unknown "AddressOf"
     | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> Unknown "AddressSet"
     | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown "Application"
-    | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) -> Unknown "Call"
+    | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) ->
+        if memberOrFunc.FullName = "Microsoft.FSharp.Core.Operators.ref"
+        then Impure
+        else 
+            sprintf "Call: (Full: %s, Logical: %s; Display: %s; Compiled: %s)" memberOrFunc.FullName memberOrFunc.LogicalName memberOrFunc.DisplayName memberOrFunc.CompiledName
+            |> Unknown
     | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
