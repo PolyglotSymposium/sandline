@@ -61,7 +61,8 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown "ILFieldGet"
     | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown "IlFieldSet"
-    | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) -> Unknown "IfThenElse"
+    | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) ->
+        mapPurity checkExprPurity [guardExpr; thenExpr; elseExpr]
     | BasicPatterns.Lambda(lambdaVar, bodyExpr) -> Unknown "Lambda"
     | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Unknown "Let"
     | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown "LetRec"

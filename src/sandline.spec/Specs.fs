@@ -18,6 +18,8 @@ let mutabilityEvidenceName purity =
     | Pure -> failwith "Expected impure because of mutability; was pure"
     | Unknown reason -> failwithf "Expected impure because of mutability; was Unknown because of %s" reason
 
+let bang = "Microsoft.FSharp.Core.Operators.( ! )"
+
 [<Tests>]
 let specs = 
     testList "Purity checking" [
@@ -42,6 +44,34 @@ let specs =
             let foo = 3 + 5
             """
             test <@ checkPurity filepath = Pure @>
+        testCase "An if-then-else expression is pure in and of itself" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let ifthenelse x y z = if x then y else z
+            """
+            test <@ checkPurity filepath = Pure @>
+        testCase "An if-then-else expression is impure if the condition is condition is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let ifthenelse x y z = if !x then y else z
+            """
+            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
+        testCase "An if-then-else expression is impure if the condition is consequent is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let ifthenelse x y z = if x then !y else z
+            """
+            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
+        testCase "An if-then-else expression is impure if the condition is alternative is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let ifthenelse x y z = if x then y else !z
+            """
+            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
         testCase "Parametric identity function is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -76,7 +106,7 @@ let specs =
 
             let foo x = 3 + !x
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.( ! )" @>
+            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
         testCase "A function dereferencing a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
