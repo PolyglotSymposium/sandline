@@ -14,10 +14,19 @@ let saveCode code =
 
 let mutabilityEvidenceName purity =
     match purity with
-    | Impure (UsesMutability symbol) -> symbol.FullName
-    | Impure UsesExceptions -> failwith "Expected impure because of mutability; was impure because of exceptions"
+    | Impure (Symbol symbol, UsesMutability) -> symbol.FullName
+    | Impure (Name name, UsesMutability) -> name
+    | Impure (_, reason) -> failwithf "Expected impure because of mutability; was impure because of: %A" reason
     | Pure -> failwith "Expected impure because of mutability; was pure"
     | Unknown reason -> failwithf "Expected impure because of mutability; was Unknown because of %s" reason
+
+let exceptionsEvidenceName purity =
+    match purity with
+    | Impure (Symbol symbol, UsesExceptions) -> symbol.FullName
+    | Impure (Name name, UsesExceptions) -> name
+    | Impure (_, reason) -> failwithf "Expected impure because of exceptions; was impure because of: %A" reason
+    | Pure -> failwith "Expected impure because of exceptions; was pure"
+    | Unknown reason -> failwithf "Expected impure because of exceptions; was Unknown because of %s" reason
 
 let bang = "Microsoft.FSharp.Core.Operators.( ! )"
 
@@ -130,7 +139,7 @@ let specs =
             let foo() =
                 raise <| System.Exception()
             """
-            test <@ checkPurity filepath = Impure UsesExceptions @>
+            test <@ exceptionsEvidenceName <| checkPurity filepath = "" @>
         testCase "A function that catches an exception is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -140,5 +149,5 @@ let specs =
                     bar()
                 with _ -> ()
             """
-            test <@ checkPurity filepath = Impure UsesExceptions @>
+            test <@ exceptionsEvidenceName <| checkPurity filepath = "" @>
     ]
