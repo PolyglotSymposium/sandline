@@ -54,6 +54,7 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Sandbox.fs" />
     <Compile Include="Sandline.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
