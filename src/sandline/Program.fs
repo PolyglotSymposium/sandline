@@ -3,7 +3,7 @@
 
 [<EntryPoint>]
 let main _ = 
-    Sandline.test()
+    Sandline.test'()
     printfn "Your first code is %A" <| Sandline.checkPurity Sandline.input0
     printfn "Your second code is %A" <| Sandline.checkPurity Sandline.input1
     //printfn "Your third code is %A" <| Sandline.checkPurity Sandline.input2

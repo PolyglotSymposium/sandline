@@ -5,12 +5,10 @@ open Microsoft.FSharp.Compiler.SourceCodeServices
 
 let checker = FSharpChecker.Create(keepAssemblyContents=true)
 
-let parseAndCheckSingleFile (input) = 
-    let file = Path.ChangeExtension(Path.GetTempFileName(), "fsx")  
-    File.WriteAllText(file, input)
+let parseAndCheckSingleFile file = 
     // Get context representing a stand-alone (script) file
     let projOptions = 
-        checker.GetProjectOptionsFromScript(file, input)
+        checker.GetProjectOptionsFromScript(file, File.ReadAllText file)
         |> Async.RunSynchronously
 
     (checker.ParseAndCheckProject(projOptions) 
@@ -247,7 +245,7 @@ and checkDeclsPurity decls =
 let checkPurity input =
     checkDeclsPurity (parseAndCheckSingleFile input).Declarations
 
-let test() =
+let test'() =
     let checkedFile = parseAndCheckSingleFile input1
 
     for d in checkedFile.Declarations do 
