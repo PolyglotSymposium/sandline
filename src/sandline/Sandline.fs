@@ -36,17 +36,25 @@ let (&&&&) p1 p2 =
     | Unknown a, _ -> Unknown a
     | _, Unknown b -> Unknown b
 
+let impureFunctions = [
+    "Microsoft.FSharp.Core.Operators.ref"
+    "Microsoft.FSharp.Core.Operators.( ! )"
+]
+
+let mapPurity f =
+    Seq.map f
+    >> Seq.reduce (&&&&)
+
 let rec checkExprPurity (expr : FSharpExpr) = 
     match expr with 
     | BasicPatterns.AddressOf(lvalueExpr) -> Unknown "AddressOf"
     | BasicPatterns.AddressSet(lvalueExpr, rvalueExpr) -> Unknown "AddressSet"
     | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown "Application"
     | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) ->
-        if memberOrFunc.FullName = "Microsoft.FSharp.Core.Operators.ref"
+        if Seq.exists ((=) memberOrFunc.FullName) impureFunctions
         then Impure <| UsesMutability memberOrFunc
-        else 
-            sprintf "Call: (Full: %s, Logical: %s; Display: %s; Compiled: %s)" memberOrFunc.FullName memberOrFunc.LogicalName memberOrFunc.DisplayName memberOrFunc.CompiledName
-            |> Unknown
+        else
+            mapPurity checkExprPurity argExprs
     | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
@@ -91,17 +99,14 @@ let rec checkExprPurity (expr : FSharpExpr) =
 let rec checkDeclPurity d = 
     match d with 
     | FSharpImplementationFileDeclaration.Entity (e, subDecls) -> 
-        checkDeclsPurity subDecls
+        mapPurity checkDeclPurity subDecls
     | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(mOrFOrV, vs, expr) -> 
         if mOrFOrV.IsMutable
         then Impure <| UsesMutability mOrFOrV
         else checkExprPurity expr
     | FSharpImplementationFileDeclaration.InitAction expr -> 
         checkExprPurity expr
-and checkDeclsPurity decls =
-    Seq.map checkDeclPurity decls
-    |> Seq.reduce (&&&&)
 
 let checkPurity input =
-    checkDeclsPurity (parseAndCheckSingleFile input).Declarations
+    mapPurity checkDeclPurity (parseAndCheckSingleFile input).Declarations
 
