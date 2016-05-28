@@ -51,28 +51,28 @@ let specs =
 
             let ifthenelse x y z = if !x then y else z
             """
-            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode(bang, UsesMutability)) @>
         testCase "An let declaration with an if-then-else expression is impure if the consequent is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if x then !y else z
             """
-            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode(bang, UsesMutability)) @>
         testCase "An let declaration with an if-then-else expression is impure if the alternate is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if x then y else !z
             """
-            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode(bang, UsesMutability)) @>
         testCase "An if-then-else expression is impure even if its impure alternate is never executed" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if true then y else !z
             """
-            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode ("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode (bang, UsesMutability)) @>
         testCase "Parametric identity function is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -107,7 +107,7 @@ let specs =
 
             let foo x = 3 + !x
             """
-            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode ("Microsoft.FSharp.Core.Operators.( ! )",UsesMutability)) @>
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode (bang,UsesMutability)) @>
         testCase "A function mutating a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
