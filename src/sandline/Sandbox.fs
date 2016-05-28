@@ -153,8 +153,18 @@ let foo =
     raise <| Exception()
 """
 
+
+let input4 = """
+module MyLibrary
+
+open System.Collections.Generic
+
+let a : IEnumerable<string> = List<string>()
+let b = a :?> List<string>
+"""
+
 let test'() =
-    let checkedFile = parseAndCheckSingleFile input3
+    let checkedFile = parseAndCheckSingleFile input4
 
     for d in checkedFile.Declarations do 
        printDecl "" d

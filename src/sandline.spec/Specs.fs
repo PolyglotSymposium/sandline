@@ -263,4 +263,14 @@ let specs =
             let a = List<string>() :> IEnumerable<string>
             """
             test <@ checkPurity filepath = Pure @>
+        testCase "A downcast that will succeed is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            open System.Collections.Generic
+
+            let a : IEnumerable<string> = List<string>()
+            let b = a :?> List<string>
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode ("Microsoft.FSharp.Core.Operators.raise",UsesExceptions)) @>
     ]
