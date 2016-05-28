@@ -114,8 +114,8 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> Unknown "FSharpFieldGet"
     | BasicPatterns.FSharpFieldSet(objExprOpt, recordOrClassType, fieldInfo, argExpr) -> Unknown "FSharpFieldSet"
     | BasicPatterns.Sequential(firstExpr, secondExpr) -> Unknown "Sequential"
-    | BasicPatterns.TryFinally(bodyExpr, finalizeExpr) -> Unknown "TryFinally"
-    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> Impure("try...with", UsesExceptions)
+    | BasicPatterns.TryFinally _ -> Impure("try...finally", UsesExceptions)
+    | BasicPatterns.TryWith _ -> Impure("try...with", UsesExceptions)
     | BasicPatterns.TupleGet(tupleType, tupleElemIndex, tupleExpr) -> Unknown "TupleGet"
     | BasicPatterns.DecisionTree(decisionExpr, decisionTargets) -> Unknown "DecisionTree"
     | BasicPatterns.DecisionTreeSuccess (decisionTargetIdx, decisionTargetExprs) -> Unknown "DecisionTreeSuccess"

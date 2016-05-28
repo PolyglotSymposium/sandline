@@ -134,6 +134,17 @@ let specs =
                 with _ -> ()
             """
             test <@ checkPurity filepath = Impure("MyLibrary.foo",CallsImpureCode ("try...with",UsesExceptions)) @>
+        testCase "A function with a try/finally is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let foo bar =
+                try
+                    bar()
+                finally
+                    ()
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.foo",CallsImpureCode ("try...finally",UsesExceptions)) @>
         testCase "A value that is defined in terms of another pure value is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
