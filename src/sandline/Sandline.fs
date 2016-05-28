@@ -107,7 +107,8 @@ let rec checkExprPurity (expr : FSharpExpr) =
         sprintf "NewObject: (Type: %s, Type Args: %A, Arg Exprs: %A)" objType.FullName typeArgs argExprs
         |> Unknown
     | BasicPatterns.NewRecord(recordType, argExprs) -> Unknown "NewRecord"
-    | BasicPatterns.NewTuple(tupleType, argExprs) -> Unknown "NewTuple"
+    | BasicPatterns.NewTuple(_, argExprs) ->
+            mapPurityOfArgs checkExprPurity argExprs
     | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> Unknown "NewUnionCase"
     | BasicPatterns.Quote(quotedExpr) -> Unknown "Quote"
     | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> Unknown "FSharpFieldGet"
