@@ -20,14 +20,7 @@ module MyLibrary
 let foo = System.DateTime.Now
 """
 
-type EntityId =
-    | Name of string
-    | Symbol of FSharpSymbol
-
-let idToString =
-    function
-    | Name name -> name
-    | Symbol symbol -> symbol.FullName
+type EntityId = string
 
 type ImpurityEvidence =
     | UsesMutability
@@ -39,14 +32,22 @@ let rec evidenceToString =
     | UsesMutability -> "uses mutability"
     | UsesExceptions -> "uses exceptions"
     | CallsImpureCode(id, evidence) ->
-        sprintf "calls impure %s, which is impure because it %s" (idToString id) (evidenceToString evidence)
+        sprintf "calls impure %s, which is impure because it %s" id <| evidenceToString evidence
 
 type Purity =
     | Pure
     | Impure of EntityId * ImpurityEvidence
     | Unknown of string
 
-let purityAccumulator id state next =
+let purityAccumulator state next =
+    match state, next with
+    | Pure, Pure -> Pure
+    | Impure(a, b), _
+    | _, Impure (a, b) -> Impure (a, b)
+    | Unknown a, _
+    | Pure, Unknown a -> Unknown a
+
+let nestingPurityAccumulator id state next =
     match state, next with
     | Pure, Pure -> Pure
     | Impure(a, b), _ -> Impure (a, b)
@@ -64,9 +65,13 @@ let usesExceptions = [
     "Microsoft.FSharp.Core.Operators.raise"
 ]
 
+let mapPurityOfArgs f =
+    Seq.map f
+    >> Seq.reduce purityAccumulator
+
 let mapPurity id f =
     Seq.map f
-    >> Seq.reduce (purityAccumulator id)
+    >> Seq.reduce (nestingPurityAccumulator id)
 
 let rec checkExprPurity (expr : FSharpExpr) = 
     match expr with 
@@ -75,18 +80,18 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.Application(funcExpr, typeArgs, argExprs) -> Unknown "Application"
     | BasicPatterns.Call(objExprOpt, memberOrFunc, typeArgs1, typeArgs2, argExprs) ->
         if Seq.exists ((=) memberOrFunc.FullName) usesMutability
-        then Impure(Symbol memberOrFunc, UsesMutability)
+        then Impure(memberOrFunc.FullName, UsesMutability)
         else if Seq.exists ((=) memberOrFunc.FullName) usesExceptions
-        then Impure(Symbol memberOrFunc, UsesExceptions)
+        then Impure(memberOrFunc.FullName, UsesExceptions)
         else
-            mapPurity (Symbol memberOrFunc) checkExprPurity argExprs
+            mapPurityOfArgs checkExprPurity argExprs
     | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown "ILFieldGet"
     | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown "IlFieldSet"
     | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) ->
-        mapPurity (Name "if...then...else") checkExprPurity [guardExpr; thenExpr; elseExpr]
+        mapPurityOfArgs checkExprPurity [guardExpr; thenExpr; elseExpr]
     | BasicPatterns.Lambda(lambdaVar, bodyExpr) ->
         checkExprPurity bodyExpr
     | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Unknown "Let"
@@ -104,7 +109,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.FSharpFieldSet(objExprOpt, recordOrClassType, fieldInfo, argExpr) -> Unknown "FSharpFieldSet"
     | BasicPatterns.Sequential(firstExpr, secondExpr) -> Unknown "Sequential"
     | BasicPatterns.TryFinally(bodyExpr, finalizeExpr) -> Unknown "TryFinally"
-    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> Impure(Name "try...with", UsesExceptions)
+    | BasicPatterns.TryWith(bodyExpr, _, _, catchVar, catchExpr) -> Impure("try...with", UsesExceptions)
     | BasicPatterns.TupleGet(tupleType, tupleElemIndex, tupleExpr) -> Unknown "TupleGet"
     | BasicPatterns.DecisionTree(decisionExpr, decisionTargets) -> Unknown "DecisionTree"
     | BasicPatterns.DecisionTreeSuccess (decisionTargetIdx, decisionTargetExprs) -> Unknown "DecisionTreeSuccess"
@@ -128,21 +133,21 @@ let rec checkExprPurity (expr : FSharpExpr) =
 let rec checkDeclPurity d = 
     match d with 
     | FSharpImplementationFileDeclaration.Entity (entity, subDecls) -> 
-        mapPurity (Symbol entity) checkDeclPurity subDecls
+        mapPurity entity.FullName checkDeclPurity subDecls
     | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(mOrFOrV, vs, expr) -> 
-        let id = Symbol mOrFOrV
+        let id = mOrFOrV.FullName
         if mOrFOrV.IsMutable
         then Impure(id, UsesMutability)
-        else purityAccumulator id Pure <| checkExprPurity expr
+        else nestingPurityAccumulator id Pure <| checkExprPurity expr
     | FSharpImplementationFileDeclaration.InitAction expr -> 
         checkExprPurity expr
 
 let checkPurity input =
     let checkedFile = parseAndCheckSingleFile input
-    mapPurity (Name checkedFile.QualifiedName) checkDeclPurity checkedFile.Declarations
+    mapPurity checkedFile.QualifiedName checkDeclPurity checkedFile.Declarations
 
 let formatPurityResult =
     function
     | Pure -> "Your code is pure!"
-    | Impure(id, evidence) -> sprintf "%s is impure because it %s" (idToString id) (evidenceToString evidence)
+    | Impure(id, evidence) -> sprintf "%s is impure because it %s" id (evidenceToString evidence)
     | Unknown debugInfo -> "Could not determine if your code was pure. Debug info: " + debugInfo

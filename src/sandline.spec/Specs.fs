@@ -12,22 +12,6 @@ let saveCode code =
     File.WriteAllText(file, code)
     file
 
-let mutabilityEvidenceName purity =
-    match purity with
-    | Impure (Symbol symbol, UsesMutability) -> symbol.FullName
-    | Impure (Name name, UsesMutability) -> name
-    | Impure (_, reason) -> failwithf "Expected impure because of mutability; was impure because of: %A" reason
-    | Pure -> failwith "Expected impure because of mutability; was pure"
-    | Unknown reason -> failwithf "Expected impure because of mutability; was Unknown because of %s" reason
-
-let exceptionsEvidenceName purity =
-    match purity with
-    | Impure (Symbol symbol, UsesExceptions) -> symbol.FullName
-    | Impure (Name name, UsesExceptions) -> name
-    | Impure (_, reason) -> failwithf "Expected impure because of exceptions; was impure because of: %A" reason
-    | Pure -> failwith "Expected impure because of exceptions; was pure"
-    | Unknown reason -> failwithf "Expected impure because of exceptions; was Unknown because of %s" reason
-
 let bang = "Microsoft.FSharp.Core.Operators.( ! )"
 
 [<Tests>]
@@ -61,34 +45,34 @@ let specs =
             let ifthenelse x y z = if x then y else z
             """
             test <@ checkPurity filepath = Pure @>
-        testCase "An if-then-else expression is impure if the condition is condition is impure" <| fun _ ->
+        testCase "An let declaration with an if-then-else expression is impure if the condition is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if !x then y else z
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
-        testCase "An if-then-else expression is impure if the condition is consequent is impure" <| fun _ ->
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+        testCase "An let declaration with an if-then-else expression is impure if the consequent is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if x then !y else z
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
-        testCase "An if-then-else expression is impure if the condition is alternative is impure" <| fun _ ->
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
+        testCase "An let declaration with an if-then-else expression is impure if the alternate is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if x then y else !z
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
         testCase "An if-then-else expression is impure even if its impure alternate is never executed" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let ifthenelse x y z = if true then y else !z
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
+            test <@ checkPurity filepath = Impure("MyLibrary.ifthenelse", CallsImpureCode ("Microsoft.FSharp.Core.Operators.( ! )", UsesMutability)) @>
         testCase "Parametric identity function is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -102,36 +86,36 @@ let specs =
 
             let mutable foo = 0
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = "MyLibrary.foo" @>
-        testCase "A let statement with a ref is impure" <| fun _ ->
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", UsesMutability) @>
+        testCase "A let declaration with a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo = ref 0
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.ref" @>
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode ("Microsoft.FSharp.Core.Operators.ref",UsesMutability)) @>
         testCase "A function returning a ref, not dependent on inputs is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo () = ref 0
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.ref" @>
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode ("Microsoft.FSharp.Core.Operators.ref",UsesMutability)) @>
         testCase "A function dereferencing a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo x = 3 + !x
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = bang @>
-        testCase "A function dereferencing a ref is impure" <| fun _ ->
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode ("Microsoft.FSharp.Core.Operators.( ! )",UsesMutability)) @>
+        testCase "A function mutating a ref is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
             let foo x =
                 x := 3
             """
-            test <@ mutabilityEvidenceName <| checkPurity filepath = "Microsoft.FSharp.Core.Operators.( := )" @>
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode("Microsoft.FSharp.Core.Operators.( := )",UsesMutability)) @>
         testCase "A function that raises an exception is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -139,7 +123,7 @@ let specs =
             let foo() =
                 raise <| System.Exception()
             """
-            test <@ exceptionsEvidenceName <| checkPurity filepath = "" @>
+            test <@ checkPurity filepath = Impure("MyLibrary.foo", CallsImpureCode("Microsoft.FSharp.Core.Operators.raise", UsesExceptions)) @>
         testCase "A function that catches an exception is impure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
@@ -149,5 +133,5 @@ let specs =
                     bar()
                 with _ -> ()
             """
-            test <@ exceptionsEvidenceName <| checkPurity filepath = "" @>
+            test <@ checkPurity filepath = Impure ("MyLibrary.foo",CallsImpureCode ("try...with",UsesExceptions)) @>
     ]
