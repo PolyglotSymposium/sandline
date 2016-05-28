@@ -72,10 +72,10 @@ let private mapPurity' acculumator f childPurities =
         Seq.map f childPurities
         |> Seq.reduce acculumator
 
-let mapPurityOfArgs =
+let mapPurity =
     mapPurity' purityAccumulator
 
-let mapPurity id =
+let nestingMapPurity id =
     mapPurity' (nestingPurityAccumulator id)
 
 let rec checkExprPurity (expr : FSharpExpr) = 
@@ -89,20 +89,21 @@ let rec checkExprPurity (expr : FSharpExpr) =
         else if Seq.exists ((=) memberOrFunc.FullName) usesExceptions
         then Impure(memberOrFunc.FullName, UsesExceptions)
         else
-            mapPurityOfArgs checkExprPurity argExprs
+            mapPurity checkExprPurity argExprs
     | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown "ILFieldGet"
     | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown "IlFieldSet"
     | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) ->
-        mapPurityOfArgs checkExprPurity [guardExpr; thenExpr; elseExpr]
+        mapPurity checkExprPurity [guardExpr; thenExpr; elseExpr]
     | BasicPatterns.Lambda(lambdaVar, bodyExpr) ->
         checkExprPurity bodyExpr
     | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) ->
         if bindingVar.IsMutable
         then Impure (bindingVar.FullName, UsesMutability)
-        else checkExprPurity bindingExpr
+        else
+            mapPurity checkExprPurity [bindingExpr; bodyExpr]
     | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown "LetRec"
     | BasicPatterns.NewArray(arrayType, argExprs) -> Unknown "NewArray"
     | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> Unknown "NewDelegate"
@@ -111,7 +112,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
         |> Unknown
     | BasicPatterns.NewRecord(recordType, argExprs) -> Unknown "NewRecord"
     | BasicPatterns.NewTuple(_, argExprs) ->
-            mapPurityOfArgs checkExprPurity argExprs
+            mapPurity checkExprPurity argExprs
     | BasicPatterns.NewUnionCase(unionType, unionCase, argExprs) -> Unknown "NewUnionCase"
     | BasicPatterns.Quote(quotedExpr) -> Unknown "Quote"
     | BasicPatterns.FSharpFieldGet(objExprOpt, recordOrClassType, fieldInfo) -> Unknown "FSharpFieldGet"
@@ -142,7 +143,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
 let rec checkDeclPurity d = 
     match d with 
     | FSharpImplementationFileDeclaration.Entity (entity, subDecls) -> 
-        mapPurity entity.FullName checkDeclPurity subDecls
+        nestingMapPurity entity.FullName checkDeclPurity subDecls
     | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(mOrFOrV, vs, expr) -> 
         let id = mOrFOrV.FullName
         if mOrFOrV.IsMutable
@@ -153,7 +154,7 @@ let rec checkDeclPurity d =
 
 let checkPurity input =
     let checkedFile = parseAndCheckSingleFile input
-    mapPurity checkedFile.QualifiedName checkDeclPurity checkedFile.Declarations
+    nestingMapPurity checkedFile.QualifiedName checkDeclPurity checkedFile.Declarations
 
 let formatPurityResult =
     function
