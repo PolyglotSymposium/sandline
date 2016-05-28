@@ -134,4 +134,13 @@ let specs =
                 with _ -> ()
             """
             test <@ checkPurity filepath = Impure ("MyLibrary.foo",CallsImpureCode ("try...with",UsesExceptions)) @>
+        testCase "A value that is defined in terms of another pure value is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a = 40
+
+            let b = a + 2
+            """
+            test <@ checkPurity filepath = Pure @>
     ]

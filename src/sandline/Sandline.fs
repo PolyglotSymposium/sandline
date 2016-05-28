@@ -65,13 +65,18 @@ let usesExceptions = [
     "Microsoft.FSharp.Core.Operators.raise"
 ]
 
-let mapPurityOfArgs f =
-    Seq.map f
-    >> Seq.reduce purityAccumulator
+let private mapPurity' acculumator f childPurities =
+    if Seq.isEmpty childPurities
+    then Pure
+    else
+        Seq.map f childPurities
+        |> Seq.reduce acculumator
 
-let mapPurity id f =
-    Seq.map f
-    >> Seq.reduce (nestingPurityAccumulator id)
+let mapPurityOfArgs =
+    mapPurity' purityAccumulator
+
+let mapPurity id =
+    mapPurity' (nestingPurityAccumulator id)
 
 let rec checkExprPurity (expr : FSharpExpr) = 
     match expr with 
