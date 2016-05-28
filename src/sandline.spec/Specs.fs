@@ -236,4 +236,31 @@ let specs =
                 in !y
             """
             test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode(bang, UsesMutability)) @>
+        testCase "A let expression with an impure body is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a x =
+                let y = x
+                in !y
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode(bang, UsesMutability)) @>
+        testCase "A let expression with an impure body is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a x =
+                let y = x
+                in !y
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode(bang, UsesMutability)) @>
+        testCase "An upcast is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            open System.Collections.Generic
+
+            let a = List<string>() :> IEnumerable<string>
+            """
+            test <@ checkPurity filepath = Pure @>
     ]

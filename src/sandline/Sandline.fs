@@ -90,7 +90,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
         then Impure(memberOrFunc.FullName, UsesExceptions)
         else
             mapPurity checkExprPurity argExprs
-    | BasicPatterns.Coerce(targetType, inpExpr) -> Unknown "Coerce"
+    | BasicPatterns.Coerce(targetType, inpExpr) -> Pure
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown "ILFieldGet"
