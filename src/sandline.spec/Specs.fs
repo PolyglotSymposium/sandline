@@ -218,4 +218,13 @@ let specs =
                 in x
             """
             test <@ checkPurity filepath = Impure("MyLibrary.a",CallsImpureCode ("x",UsesMutability)) @>
+        testCase "A let expression with the name bound to an impure value is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a x =
+                let y = !x
+                in y
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode(bang, UsesMutability)) @>
     ]

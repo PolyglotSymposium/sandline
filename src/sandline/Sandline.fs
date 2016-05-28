@@ -102,7 +102,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
     | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) ->
         if bindingVar.IsMutable
         then Impure (bindingVar.FullName, UsesMutability)
-        else Pure
+        else checkExprPurity bindingExpr
     | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown "LetRec"
     | BasicPatterns.NewArray(arrayType, argExprs) -> Unknown "NewArray"
     | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> Unknown "NewDelegate"
