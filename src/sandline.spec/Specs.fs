@@ -200,7 +200,7 @@ let specs =
             let a = fst ("foo", 1)
             """
             test <@ checkPurity filepath = Pure @>
-        testCase "Let expression is pure" <| fun _ ->
+        testCase "A let expression in and of itself is pure" <| fun _ ->
             let filepath = saveCode """
             module MyLibrary
 
@@ -209,4 +209,13 @@ let specs =
                 in x
             """
             test <@ checkPurity filepath = Pure @>
+        testCase "Let mutable expression is impure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a =
+                let mutable x = 1337
+                in x
+            """
+            test <@ checkPurity filepath = Impure("MyLibrary.a",CallsImpureCode ("x",UsesMutability)) @>
     ]
