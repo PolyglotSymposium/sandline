@@ -193,4 +193,20 @@ let specs =
             let a x = ("foo", !x)
             """
             test <@ checkPurity filepath = Impure("MyLibrary.a", CallsImpureCode (bang, UsesMutability)) @>
+        testCase "Tuple fst function is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a = fst ("foo", 1)
+            """
+            test <@ checkPurity filepath = Pure @>
+        testCase "Let expression is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a =
+                let x = 1337
+                in x
+            """
+            test <@ checkPurity filepath = Pure @>
     ]

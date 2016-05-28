@@ -99,7 +99,7 @@ let rec checkExprPurity (expr : FSharpExpr) =
         mapPurityOfArgs checkExprPurity [guardExpr; thenExpr; elseExpr]
     | BasicPatterns.Lambda(lambdaVar, bodyExpr) ->
         checkExprPurity bodyExpr
-    | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Unknown "Let"
+    | BasicPatterns.Let((bindingVar, bindingExpr), bodyExpr) -> Pure
     | BasicPatterns.LetRec(recursiveBindings, bodyExpr) -> Unknown "LetRec"
     | BasicPatterns.NewArray(arrayType, argExprs) -> Unknown "NewArray"
     | BasicPatterns.NewDelegate(delegateType, delegateBodyExpr) -> Unknown "NewDelegate"
