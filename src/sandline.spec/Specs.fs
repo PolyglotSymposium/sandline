@@ -143,4 +143,13 @@ let specs =
             let b = a + 2
             """
             test <@ checkPurity filepath = Pure @>
+        testCase "A function that is pure and defined in terms of a pure value is pure" <| fun _ ->
+            let filepath = saveCode """
+            module MyLibrary
+
+            let a = 40
+
+            let b c = a + c
+            """
+            test <@ checkPurity filepath = Pure @>
     ]
