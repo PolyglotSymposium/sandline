@@ -52,6 +52,11 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TestInfrastructure.fs" />
+    <Compile Include="TestData.fs" />
+    <Compile Include="DoesntCompile.fs" />
+    <Compile Include="Tuple.fs" />
+    <Compile Include="Record.fs" />
     <Compile Include="Specs.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />

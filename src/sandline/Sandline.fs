@@ -14,12 +14,6 @@ let parseAndCheckSingleFile file =
     (checker.ParseAndCheckProject(projOptions) 
     |> Async.RunSynchronously).AssemblyContents.ImplementationFiles.[0]
 
-let input0 = """
-module MyLibrary
-
-let foo = System.DateTime.Now
-"""
-
 type EntityId = string
 
 type ImpurityEvidence =
@@ -65,6 +59,10 @@ let usesExceptions = [
     "Microsoft.FSharp.Core.Operators.raise"
 ]
 
+let compilerGennedWhitelist = [
+    "GetHashCode"
+]
+
 let private mapPurity' acculumator f childPurities =
     if Seq.isEmpty childPurities
     then Pure
@@ -92,7 +90,9 @@ let rec checkExprPurity (expr : FSharpExpr) =
             mapPurity checkExprPurity argExprs
     | BasicPatterns.Coerce(targetType, inpExpr) -> Pure
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> Unknown "FastIntegerForLoop"
-    | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> Unknown "ILAsm"
+    | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) ->
+        sprintf "Asm: %s | %A | %A" asmCode typeArgs argExprs
+        |> Unknown
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> Unknown "ILFieldGet"
     | BasicPatterns.ILFieldSet (objExprOpt, fieldType, fieldName, valueExpr) -> Unknown "IlFieldSet"
     | BasicPatterns.IfThenElse (guardExpr, thenExpr, elseExpr) ->
@@ -148,7 +148,10 @@ let rec checkDeclPurity d =
         let id = mOrFOrV.FullName
         if mOrFOrV.IsMutable
         then Impure(id, UsesMutability)
-        else nestingPurityAccumulator id Pure <| checkExprPurity expr
+        else
+            if mOrFOrV.IsCompilerGenerated && List.exists ((=) mOrFOrV.DisplayName) compilerGennedWhitelist
+            then Pure
+            else nestingPurityAccumulator id Pure <| checkExprPurity expr
     | FSharpImplementationFileDeclaration.InitAction expr -> 
         checkExprPurity expr
 

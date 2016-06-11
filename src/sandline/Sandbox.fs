@@ -32,6 +32,7 @@ let rec visitExpr f (e:FSharpExpr) =
     | BasicPatterns.FastIntegerForLoop(startExpr, limitExpr, consumeExpr, isUp) -> 
         visitExpr f startExpr; visitExpr f limitExpr; visitExpr f consumeExpr
     | BasicPatterns.ILAsm(asmCode, typeArgs, argExprs) -> 
+        printfn "Hit an ILAsm %A %A %A" asmCode typeArgs argExprs
         visitExprs f argExprs
     | BasicPatterns.ILFieldGet (objExprOpt, fieldType, fieldName) -> 
         visitObjArg f objExprOpt
@@ -163,8 +164,19 @@ let a : IEnumerable<string> = List<string>()
 let b = a :?> List<string>
 """
 
+let input5 = """
+module MyLibrary
+
+type R = {
+    X : int
+    Y : string
+}
+
+let a = { X = 2; Y = "foo" }
+"""
+
 let test'() =
-    let checkedFile = parseAndCheckSingleFile input4
+    let checkedFile = parseAndCheckSingleFile input5
 
     for d in checkedFile.Declarations do 
        printDecl "" d
