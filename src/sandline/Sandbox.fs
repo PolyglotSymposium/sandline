@@ -125,58 +125,15 @@ let rec printDecl prefix d =
     | FSharpImplementationFileDeclaration.InitAction(e) -> 
         printfn "%sA top-level expression was declared" prefix 
 
-let input1 = """
+let input = """
 module MyLibrary
 
-let foo = 0
-"""
-
-let input2 = """
-module MyLibrary 
-
-open System
-
-let foo(x, y) = 
-    let msg = String.Concat("Hello", " ", "world")
-    if msg.Length > 10 then 
-        10 
-    else 
-        2
-
-type MyClass() = 
-    member x.MyMethod() = 1
-      """
-
-let input3 = """
-module MyLibrary
-
-let foo =
-    raise <| Exception()
-"""
-
-
-let input4 = """
-module MyLibrary
-
-open System.Collections.Generic
-
-let a : IEnumerable<string> = List<string>()
-let b = a :?> List<string>
-"""
-
-let input5 = """
-module MyLibrary
-
-type R = {
-    X : int
-    Y : string
-}
-
-let a = { X = 2; Y = "foo" }
+let rec a x =
+    a x
 """
 
 let test'() =
-    let checkedFile = parseAndCheckSingleFile input5
+    let checkedFile = parseAndCheckSingleFile input
 
     for d in checkedFile.Declarations do 
        printDecl "" d
